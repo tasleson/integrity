@@ -1,7 +1,7 @@
 #!/bin/env python2
 #
 # Theory of operation:
-# randomly create files until you get the FS 90% full
+# randomly create files until you get the FS 50% full
 # then verify all the files and then start removing/recreating files while
 # verifying them.
 #
