@@ -1,4 +1,4 @@
- # integrity
+### integrity
 
 Simple utility to generate files in directory and validate that they are still correct.
 
