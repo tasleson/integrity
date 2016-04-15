@@ -1,0 +1,10 @@
+[package]
+name = "integrity"
+version = "0.0.1"
+authors = ["Tony Asleson <tasleson@redhat.com>"]
+
+[dependencies]
+rand = "0.3"
+time = "0.1"
+rust-crypto = "0.2.35"
+nix = "0.5.0"
