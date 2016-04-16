@@ -92,8 +92,8 @@ fn run(directory: &str) {
             for f in &files_created {
                 if !verify_file(&*f) {
                     println!("File {} not validating!", f);
-					println!("We created {} files with a total of {} bytes!",
-						num_files_created, total_bytes);
+		    println!("We created {} files with a total of {} bytes!",
+			     num_files_created, total_bytes);
                     exit(1);
                 }
             }
@@ -114,7 +114,7 @@ fn run(directory: &str) {
         }
     }
     println!("We created {} files with a total of {} bytes!",
-						num_files_created, total_bytes);
+	     num_files_created, total_bytes);
 }
 
 fn create_file(directory: &str, seed: usize, file_size: usize) -> (String, usize) {
@@ -146,7 +146,7 @@ fn create_file(directory: &str, seed: usize, file_size: usize) -> (String, usize
 
     //Build the file name
     let file_name = format!("{}-{}-{}", file_hash, l_seed, l_file_size);
-	let file_name_hash = md5_sum(&file_name[..]);
+    let file_name_hash = md5_sum(&file_name[..]);
 
     //Build full file name and path
     let mut final_name = PathBuf::from(directory);
@@ -198,21 +198,21 @@ fn verify_file(full_file_name: &str) -> bool {
 
     // Check metadata
     let f_hash = md5_sum(name);
-	if meta_hash != f_hash {
-		println!("File {} meta data not valid! (stored = {}, calculated = {})",
-			full_file_name, meta_hash, f_hash);
-		return false;
-	}
+    if meta_hash != f_hash {
+	println!("File {} meta data not valid! (stored = {}, calculated = {})",
+		 full_file_name, meta_hash, f_hash);
+	return false;
+    }
 
     let name_parts = name.split("-").collect::<Vec<&str>>();
-	let file_data_hash = name_parts[0];
-	let meta_size = name_parts[2].parse::<i64>().unwrap();
+    let file_data_hash = name_parts[0];
+    let meta_size = name_parts[2].parse::<i64>().unwrap();
     let file_size = get_file_size(full_file_name);
 
     if meta_size != file_size {
         println!("File {} incorrect size! (expected = {}, current = {})\n",
-	        full_file_name, meta_size, file_size);
-	    return false;
+	         full_file_name, meta_size, file_size);
+	return false;
     }
 
     // Read in the data
@@ -233,8 +233,8 @@ fn verify_file(full_file_name: &str) -> bool {
     // Compare md5
     if file_data_hash != calculated {
         println!("File {} md5 miss-match! (expected = {}, current = {})",
-			full_file_name, file_data_hash, calculated);
-		return false;
+		 full_file_name, file_data_hash, calculated);
+	return false;
     }
 
     true
@@ -242,17 +242,17 @@ fn verify_file(full_file_name: &str) -> bool {
 
 fn syntax() {
     let prg = &env::args().nth(0).unwrap();
-	println!("Usage: {} \n[-h] [-vf <file> | -r <directory> |-rc  \
-             <directory> <seed> <size>]\n", prg);
-	exit(1);
+    println!("Usage: {} \n[-h] [-vf <file> | -r <directory> |-rc  \
+              <directory> <seed> <size>]\n", prg);
+    exit(1);
 }
 
 fn main() {
     let args: Vec<_> = env::args().collect();
 
     if args.len() < 2 {
-		syntax();
-	}
+	syntax();
+    }
 
     let sig_action = signal::SigAction::new(
         signal::SigHandler::Handler(handle_sigint),
@@ -263,29 +263,29 @@ fn main() {
             expect("Unable to install signal handler!");
     }
 
-	if args[1] == "-r" && args.len() == 3 {
-		// Run test
-		let d = &args[2];
-		if is_directory(&*d) {
-		    run(&*d);
+    if args[1] == "-r" && args.len() == 3 {
+	// Run test
+	let d = &args[2];
+	if is_directory(&*d) {
+	    run(&*d);
         } else {
             println!("{} is not a directory!", d);
             exit(1);
         }
-	} else if args[1] == "-vf" && args.len() == 3 {
-		// Verify file
-		let f = &args[2];
+    } else if args[1] == "-vf" && args.len() == 3 {
+	// Verify file
+	let f = &args[2];
 
-		if verify_file(&*f) == false {
-			println!("File {} corrupt [ERROR]!\n",  f);
+	if verify_file(&*f) == false {
+	    println!("File {} corrupt [ERROR]!\n",  f);
             exit(2);
-		}
-		println!("File {} validates [OK]!\n",  f);
+	}
+	println!("File {} validates [OK]!\n",  f);
         exit(0);
 
-	} else if args[1] == "-rc" && args.len() == 5 {
-		// Re-create a file
-		let d = &args[2];
+    } else if args[1] == "-rc" && args.len() == 5 {
+	// Re-create a file
+	let d = &args[2];
 
         if is_directory(&*d) == false {
             println!("{} is not a directory!", d);
@@ -295,16 +295,16 @@ fn main() {
         let seed = args[3].parse::<usize>().unwrap();
         let file_size = args[4].parse::<usize>().unwrap();
 
-		let (f, _) = create_file(&*d, seed, file_size);
-		if f != "" {
-			println!("File recreated as {}" , f);
-			exit(0);
-		}
-		exit(1);
-
-	} else if args[1] == "-h"{
-		syntax();
-	} else {
-		syntax();
+	let (f, _) = create_file(&*d, seed, file_size);
+	if f != "" {
+	    println!("File recreated as {}" , f);
+	    exit(0);
 	}
+	exit(1);
+
+    } else if args[1] == "-h"{
+	syntax();
+    } else {
+	syntax();
+    }
 }
