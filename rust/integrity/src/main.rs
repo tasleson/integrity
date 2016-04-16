@@ -90,7 +90,7 @@ fn run(directory: &str) {
 
             // Walk the list, verifying every file
             for f in &files_created {
-                if !verify_file(&*f) {
+                if !verify_file(f) {
                     println!("File {} not validating!", f);
 		    println!("We created {} files with a total of {} bytes!",
 			     num_files_created, total_bytes);
@@ -105,7 +105,7 @@ fn run(directory: &str) {
                 //println!("Deleting file {}", file_to_delete);
                 let error_msg = format!("Error: Unable to remove file {}!",
                                         file_to_delete);
-                fs::remove_file(file_to_delete).expect(&*error_msg);
+                fs::remove_file(file_to_delete).expect(&error_msg);
             }
         }
 
@@ -159,7 +159,7 @@ fn create_file(directory: &str, seed: usize, file_size: usize) -> (String, usize
         for x in 0..50 {
             tmp_name = format!("{}.{}", final_name_str, x);
             if !file_exists(&tmp_name[..]) {
-                final_name_str = &*tmp_name;
+                final_name_str = &tmp_name;
                 break;
             }
         }
@@ -228,7 +228,7 @@ fn verify_file(full_file_name: &str) -> bool {
     }
 
     // Generate the md5
-    let calculated = md5_sum(&*data);
+    let calculated = md5_sum(&data);
 
     // Compare md5
     if file_data_hash != calculated {
@@ -266,8 +266,8 @@ fn main() {
     if args[1] == "-r" && args.len() == 3 {
 	// Run test
 	let d = &args[2];
-	if is_directory(&*d) {
-	    run(&*d);
+	if is_directory(d) {
+	    run(d);
         } else {
             println!("{} is not a directory!", d);
             exit(1);
@@ -276,7 +276,7 @@ fn main() {
 	// Verify file
 	let f = &args[2];
 
-	if verify_file(&*f) == false {
+	if verify_file(f) == false {
 	    println!("File {} corrupt [ERROR]!\n",  f);
             exit(2);
 	}
@@ -287,7 +287,7 @@ fn main() {
 	// Re-create a file
 	let d = &args[2];
 
-        if is_directory(&*d) == false {
+        if is_directory(d) == false {
             println!("{} is not a directory!", d);
             exit(1);
         }
@@ -295,7 +295,7 @@ fn main() {
         let seed = args[3].parse::<usize>().unwrap();
         let file_size = args[4].parse::<usize>().unwrap();
 
-	let (f, _) = create_file(&*d, seed, file_size);
+	let (f, _) = create_file(d, seed, file_size);
 	if f != "" {
 	    println!("File recreated as {}" , f);
 	    exit(0);
