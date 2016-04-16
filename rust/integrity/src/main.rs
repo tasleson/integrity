@@ -24,13 +24,13 @@ use nix::sys::signal;
 static mut exit_please: bool = false;
 
 extern fn handle_sigint(_:i32) {
-    unsafe {    
+    unsafe {
         exit_please = true;
     }
 }
 
 fn disk_usage(path : &str) -> (u64, u64) {
-    let mut fs = Statfs {f_bavail: 0, f_bfree: 0, f_type: 0, f_frsize: 0, 
+    let mut fs = Statfs {f_bavail: 0, f_bfree: 0, f_type: 0, f_frsize: 0,
                          f_ffree: 0, f_namelen: 0, f_fsid: 0, f_blocks: 0,
                          f_files: 0, f_spare: [0,0,0,0,0], f_bsize: 0};
     statfs(path, &mut fs).unwrap();
@@ -100,10 +100,10 @@ fn run(directory: &str) {
 
             // Delete every other file
             let count = files_created.len();
-            for i in (0..count).rev().filter(|&x| x % 2 == 0) {            
+            for i in (0..count).rev().filter(|&x| x % 2 == 0) {
                 let file_to_delete = files_created.remove(i);
                 //println!("Deleting file {}", file_to_delete);
-                let error_msg = format!("Error: Unable to remove file {}!", 
+                let error_msg = format!("Error: Unable to remove file {}!",
                                         file_to_delete);
                 fs::remove_file(file_to_delete).expect(&*error_msg);
             }
@@ -121,11 +121,11 @@ fn create_file(directory: &str, seed: usize, file_size: usize) -> (String, usize
     let mut l_file_size = file_size;
     let mut l_seed = seed;
     let mut tmp_name: String;
-    let (f_total, f_free) = disk_usage(directory);    
-    
+    let (f_total, f_free) = disk_usage(directory);
+
     if l_file_size == 0 {
         let between = Range::new(512, 1024*1024*8);
-        let mut rng = rand::thread_rng();        
+        let mut rng = rand::thread_rng();
         let available = (f_total as f64 * 0.5) as u64;
 
         if f_free <= available {
@@ -164,7 +164,7 @@ fn create_file(directory: &str, seed: usize, file_size: usize) -> (String, usize
             }
         }
     }
-    
+
     if file_exists(final_name_str) {
         return (String::from(""), 0);
     }
@@ -188,10 +188,10 @@ fn verify_file(full_file_name: &str) -> bool {
     let name = parts[0];
     let meta_hash = parts[1];
     let extension = parts[2];
-    
+
     // Check extension
     if extension.starts_with("integrity") != true {
-        println!("File extension {} does not end in \"integrity*\"!", 
+        println!("File extension {} does not end in \"integrity*\"!",
                  full_file_name);
         return false;
     }
@@ -258,7 +258,7 @@ fn main() {
         signal::SigHandler::Handler(handle_sigint),
         signal::SaFlag::empty(),
         signal::SigSet::empty());
-    unsafe {    
+    unsafe {
         signal::sigaction(signal::SIGINT, &sig_action).
             expect("Unable to install signal handler!");
     }
@@ -286,7 +286,7 @@ fn main() {
 	} else if args[1] == "-rc" && args.len() == 5 {
 		// Re-create a file
 		let d = &args[2];
-		
+
         if is_directory(&*d) == false {
             println!("{} is not a directory!", d);
             exit(1);
