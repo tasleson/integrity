@@ -1,30 +1,30 @@
 package main
 
 import (
-	"os"
-	"fmt"
-	"syscall"
-	"math/rand"
-	"time"
 	"crypto/md5"
+	"encoding/hex"
+	"fmt"
+	"io/ioutil"
+	"log"
+	"math/rand"
+	"os"
+	"os/signal"
 	"path"
 	"strconv"
-	"encoding/hex"
-	"io/ioutil"
 	"strings"
-	"log"
-	"os/signal"
+	"syscall"
+	"time"
 )
 
 var exit_please = false
 
 func syntax() {
-	fmt.Printf("Usage: %s \n[-h] [-vf <file> | -r <directory> |" +
-			"-rc <directory> <seed> <size>]\n", os.Args[0])
+	fmt.Printf("Usage: %s \n[-h] [-vf <file> | -r <directory> |"+
+		"-rc <directory> <seed> <size>]\n", os.Args[0])
 	os.Exit(1)
 }
 
-func is_directory(path string) (bool) {
+func is_directory(path string) bool {
 
 	if fileInfo, err := os.Stat(path); err == nil {
 		return fileInfo.IsDir()
@@ -43,7 +43,7 @@ func disk_usage(path string) (uint64, uint64) {
 
 var ascii_uppercase = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func rs(seed int64, file_size uint64) ([]byte) {
+func rs(seed int64, file_size uint64) []byte {
 	b := make([]byte, file_size)
 
 	rand.Seed(seed)
@@ -54,7 +54,7 @@ func rs(seed int64, file_size uint64) ([]byte) {
 	return b
 }
 
-func md5_sum(data []byte) (string) {
+func md5_sum(data []byte) string {
 	sum := md5.Sum(data)
 	return hex.EncodeToString(sum[:])
 }
@@ -134,9 +134,9 @@ func check(err error) {
 }
 
 func verify_file(full_file_name string) bool {
-    // First verify the meta data is intact
-    f_name := path.Base(full_file_name)
-    parts := strings.Split(f_name, ":")
+	// First verify the meta data is intact
+	f_name := path.Base(full_file_name)
+	parts := strings.Split(f_name, ":")
 
 	name := parts[0]
 	meta_hash := parts[1]
@@ -155,19 +155,19 @@ func verify_file(full_file_name string) bool {
 		return false
 	}
 
-    // check file size
+	// check file size
 	parts = strings.Split(name, "-")
 	file_data_hash := parts[0]
 	meta_size_str := parts[2]
 
-	meta_size, err := strconv.ParseInt(meta_size_str, 10, 64);
+	meta_size, err := strconv.ParseInt(meta_size_str, 10, 64)
 	check(err)
 
 	file_size, err := file_size_get(full_file_name)
 	check(err)
 
-    if file_size != meta_size {
-        fmt.Printf("File %s incorrect size! (expected = %d, current = %d)\n",
+	if file_size != meta_size {
+		fmt.Printf("File %s incorrect size! (expected = %d, current = %d)\n",
 			full_file_name, meta_size, file_size)
 		return false
 	}
@@ -175,16 +175,16 @@ func verify_file(full_file_name string) bool {
 	data, err := ioutil.ReadFile(full_file_name)
 	check(err)
 
-    // Finally check the data bytes
-    calculated := md5_sum(data)
+	// Finally check the data bytes
+	calculated := md5_sum(data)
 
-    if calculated != file_data_hash {
+	if calculated != file_data_hash {
 		print("File %s md5 miss-match! (expected = %s, current = %s)",
 			full_file_name, file_data_hash, calculated)
 		return false
 	}
 
-    return true
+	return true
 }
 
 func is_dir_or_exit(d string) {
@@ -195,15 +195,15 @@ func is_dir_or_exit(d string) {
 }
 
 func test(directory string) {
-    // Create files and random directories in the supplied directory
-    var files_created  []string
-    num_files_created := 0
-    var total_bytes = uint64(0)
+	// Create files and random directories in the supplied directory
+	var files_created []string
+	num_files_created := 0
+	var total_bytes = uint64(0)
 
 	for {
 		if exit_please {
 			fmt.Printf("We created %d files with a total of %d bytes!\n",
-						num_files_created, total_bytes)
+				num_files_created, total_bytes)
 			os.Exit(0)
 		}
 
@@ -246,7 +246,6 @@ func main() {
 		fmt.Print("\nGot signal: ", sig, "\n")
 	}()
 
-
 	if len(os.Args) < 2 {
 		syntax()
 	}
@@ -261,11 +260,11 @@ func main() {
 		f := os.Args[2]
 
 		if verify_file(os.Args[2]) == false {
-			fmt.Printf("File %s corrupt [ERROR]!\n",  f)
-            os.Exit(2)
+			fmt.Printf("File %s corrupt [ERROR]!\n", f)
+			os.Exit(2)
 		}
-		fmt.Printf("File %s validates [OK]!\n",  f)
-        os.Exit(0)
+		fmt.Printf("File %s validates [OK]!\n", f)
+		os.Exit(0)
 
 	} else if os.Args[1] == "-rc" && len(os.Args) == 5 {
 		// Re-create a file
@@ -282,12 +281,12 @@ func main() {
 
 		f, _ := create_file(d, seed, file_size)
 		if f != "" {
-			fmt.Printf("File recreate as %s\n" , f)
+			fmt.Printf("File recreate as %s\n", f)
 			os.Exit(0)
 		}
 		os.Exit(1)
 
-	} else if os.Args[1] == "-h"{
+	} else if os.Args[1] == "-h" {
 		syntax()
 	} else {
 		syntax()
