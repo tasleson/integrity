@@ -14,7 +14,6 @@ import (
 	"strings"
 	"log"
 	"os/signal"
-	"go/build/testdata/other/file"
 )
 
 var exit_please = false
@@ -63,14 +62,8 @@ func md5_sum(data []byte) (string) {
 func create_file(directory string, seed int64, file_size uint64) (string, uint64) {
 	total, free := disk_usage(directory)
 
-	fmt.Printf("total = %d, free = %d\n", total, free)
-
 	if file_size == 0 {
-
-		available := uint64(float64(total) * float64(0.20))
-
-		fmt.Printf("available = %d\n", available)
-
+		available := uint64(float64(total) * float64(0.50))
 		if free <= available {
 			return "", 0
 		}
@@ -122,10 +115,10 @@ func create_file(directory string, seed int64, file_size uint64) (string, uint64
 	return final_name, file_size
 }
 
-func file_size_get(full_file_name string) (int64, err error) {
+func file_size_get(full_file_name string) (int64, error) {
 	if file, err := os.Open(full_file_name); err == nil {
 		if fi, err := file.Stat(); err == nil {
-			return fi.Size()
+			return fi.Size(), nil
 		} else {
 			return -1, err
 		}
@@ -150,14 +143,14 @@ func verify_file(full_file_name string) bool {
 	extension := parts[2]
 
 	if strings.HasPrefix(extension, "integrity") != true {
-		fmt.Printf("File extension %s does not end in \"integrity*\"!",
+		fmt.Printf("File extension %s does not end in \"integrity*\"!\n",
 			full_file_name)
 		return false
 	}
 
 	f_hash := md5_sum([]byte(name))
 	if meta_hash != f_hash {
-		fmt.Printf("File %s meta data not valid! (stored = %s, calculated = %s)",
+		fmt.Printf("File %s meta data not valid! (stored = %s, calculated = %s)\n",
 			full_file_name, meta_hash, f_hash)
 		return false
 	}
@@ -165,12 +158,12 @@ func verify_file(full_file_name string) bool {
     // check file size
 	parts = strings.Split(name, "-")
 	file_data_hash := parts[0]
-	file_size := parts[2]
+	meta_size_str := parts[2]
 
-	meta_size, err := strconv.ParseInt(file_size, 10, 64);
+	meta_size, err := strconv.ParseInt(meta_size_str, 10, 64);
 	check(err)
 
-	file_size, err = file_size_get(full_file_name)
+	file_size, err := file_size_get(full_file_name)
 	check(err)
 
     if file_size != meta_size {
@@ -196,7 +189,7 @@ func verify_file(full_file_name string) bool {
 
 func is_dir_or_exit(d string) {
 	if false == is_directory(d) {
-		fmt.Printf("%s is not a directory!", d)
+		fmt.Printf("%s is not a directory!\n", d)
 		os.Exit(1)
 	}
 }
@@ -225,9 +218,9 @@ func test(directory string) {
 			// We don't have space, lets verify all and then
 			// delete every other file
 			for _, element := range files_created {
-				if verify_file(element) {
-					fmt.Printf("File %s not validating!", element)
-					fmt.Printf("We created %d files with a total of %d bytes!",
+				if verify_file(element) != true {
+					fmt.Printf("File %s not validating!\n", element)
+					fmt.Printf("We created %d files with a total of %d bytes!\n",
 						num_files_created, total_bytes)
 					os.Exit(1)
 				}
@@ -283,7 +276,7 @@ func main() {
 		file_size, err_fs := strconv.ParseUint(os.Args[4], 10, 64)
 
 		if err_seed != nil || err_fs != nil {
-			fmt.Printf("Seed or file size incorrect!")
+			fmt.Printf("Seed or file size incorrect!\n")
 			os.Exit(1)
 		}
 
