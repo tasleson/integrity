@@ -22,22 +22,12 @@ import string
 cs = list(string.ascii_uppercase)
 
 
-def rs_1(seed, l):
-    """
-    Generate a random string
-    """
-    random.seed(seed)
-    return ''.join(random.choice(cs) for _ in xrange(l))
-
-
-def rs_2(seed, l):
+def rs(seed, l):
     """
     Generate a random string
     """
     random.seed(seed)
     return ''.join([cs[int(random.random() * 26)] for _ in xrange(l)])
-
-rs = rs_2
 
 
 def disk_usage(path):
