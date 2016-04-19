@@ -15,6 +15,7 @@ use std::path::PathBuf;
 use std::fs;
 use std::fs::metadata;
 use std::fs::File;
+use std::io;
 use std::io::{Read, Write};
 use std::vec::Vec;
 use std::process::exit;
@@ -51,13 +52,6 @@ fn md5_sum(data: &str) -> String {
     hasher.result_str()
 }
 
-fn get_file_size(path: &str) -> i64 {
-    match metadata(path) {
-        Ok(n) => n.len() as i64,
-        Err(_) => -1,
-    }
-}
-
 fn is_directory(path: &str) -> bool {
     match metadata(path) {
         Ok(n) => n.is_dir(),
@@ -90,7 +84,7 @@ fn run(directory: &str) {
 
             // Walk the list, verifying every file
             for f in &files_created {
-                if !verify_file(f) {
+                if let Err(f) = verify_file(f) {
                     println!("File {} not validating!", f);
 		    println!("We created {} files with a total of {} bytes!",
 			     num_files_created, total_bytes);
@@ -180,7 +174,7 @@ fn create_file(directory: &str, seed: usize, file_size: usize) -> (String, usize
     (String::from(final_name_str), l_file_size)
 }
 
-fn verify_file(full_file_name: &str) -> bool {
+fn verify_file(full_file_name: &str) -> io::Result<()> {
     // First verify the meta data is intact
     let f_name = Path::new(full_file_name).file_name().unwrap().to_str().unwrap();
     let parts = f_name.split(":").collect::<Vec<&str>>();
@@ -191,53 +185,52 @@ fn verify_file(full_file_name: &str) -> bool {
 
     // Check extension
     if extension.starts_with("integrity") != true {
-        println!("File extension {} does not end in \"integrity*\"!",
-                 full_file_name);
-        return false;
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("File extension {} does not end in \"integrity*\"!",
+                    full_file_name)));
     }
 
     // Check metadata
     let f_hash = md5_sum(name);
     if meta_hash != f_hash {
-	println!("File {} meta data not valid! (stored = {}, calculated = {})",
-		 full_file_name, meta_hash, f_hash);
-	return false;
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("File {} meta data not valid! (stored = {}, calculated = {})",
+		    full_file_name, meta_hash, f_hash)));
     }
 
     let name_parts = name.split("-").collect::<Vec<&str>>();
     let file_data_hash = name_parts[0];
-    let meta_size = name_parts[2].parse::<i64>().unwrap();
-    let file_size = get_file_size(full_file_name);
+    let meta_size = name_parts[2].parse::<u64>().unwrap();
+    let file_size = try!(metadata(full_file_name)).len();
+
 
     if meta_size != file_size {
-        println!("File {} incorrect size! (expected = {}, current = {})\n",
-	         full_file_name, meta_size, file_size);
-	return false;
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("File {} incorrect size! (expected = {}, current = {})\n",
+	            full_file_name, meta_size, file_size)));
     }
 
     // Read in the data
     let mut data = String::new();
 
-    let f = File::open(full_file_name);
-    if f.is_ok() {
-        f.unwrap().read_to_string(&mut data).expect("Shorted read?");
-    } else {
-        // Without using a match, how do we get the err info?
-        println!("Unable to read file {}!", full_file_name);
-        return false;
-    }
+    let mut f = try!(File::open(full_file_name));
+    f.read_to_string(&mut data).expect("Shorted read?");
 
     // Generate the md5
     let calculated = md5_sum(&data);
 
     // Compare md5
     if file_data_hash != calculated {
-        println!("File {} md5 miss-match! (expected = {}, current = {})",
-		 full_file_name, file_data_hash, calculated);
-	return false;
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("File {} md5 miss-match! (expected = {}, current = {})",
+		    full_file_name, file_data_hash, calculated)));
     }
 
-    true
+    Ok(())
 }
 
 fn syntax() {
@@ -276,7 +269,7 @@ fn main() {
 	// Verify file
 	let f = &args[2];
 
-	if verify_file(f) == false {
+	if let Err(_) = verify_file(f) {
 	    println!("File {} corrupt [ERROR]!\n",  f);
             exit(2);
 	}
