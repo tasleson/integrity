@@ -15,7 +15,7 @@ use std::path::PathBuf;
 use std::fs;
 use std::fs::metadata;
 use std::fs::File;
-use std::io::prelude::*;
+use std::io::{Read, Write};
 use std::vec::Vec;
 use std::process::exit;
 use std::env;
