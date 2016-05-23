@@ -79,8 +79,8 @@ fn run(directory: &str) {
                 for f in &files_created {
                     if let Err(_) = verify_file(f) {
                         println!("File {} not validating!", f.display());
-		        println!("We created {} files with a total of {} bytes!",
-			         num_files_created, total_bytes);
+                        println!("We created {} files with a total of {} bytes!",
+                            num_files_created, total_bytes);
                         exit(1);
                     }
                 }
@@ -102,7 +102,7 @@ fn run(directory: &str) {
         }
     }
     println!("We created {} files with a total of {} bytes!",
-	     num_files_created, total_bytes);
+            num_files_created, total_bytes);
 }
 
 fn create_file(directory: &str, seed: Option<usize>, file_size: Option<usize>) -> io::Result<(PathBuf, u64)> {
@@ -188,7 +188,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("File {} meta data not valid! (stored = {}, calculated = {})",
-		    full_file_name.display(), meta_hash, f_hash)));
+                    full_file_name.display(), meta_hash, f_hash)));
     }
 
     let name_parts = name.split("-").collect::<Vec<&str>>();
@@ -201,7 +201,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("File {} incorrect size! (expected = {}, current = {})\n",
-	            full_file_name.display(), meta_size, file_size)));
+                    full_file_name.display(), meta_size, file_size)));
     }
 
     // Read in the data
@@ -218,7 +218,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("File {} md5 miss-match! (expected = {}, current = {})",
-		    full_file_name.display(), file_data_hash, calculated)));
+                    full_file_name.display(), file_data_hash, calculated)));
     }
 
     Ok(())
@@ -235,7 +235,7 @@ fn main() {
     let args: Vec<_> = env::args().collect();
 
     if args.len() < 2 {
-	syntax();
+        syntax();
     }
 
     let sig_action = signal::SigAction::new(
@@ -248,28 +248,28 @@ fn main() {
     }
 
     if args[1] == "-r" && args.len() == 3 {
-	// Run test
-	let d = &args[2];
-	if is_directory(d) {
-	    run(d);
+        // Run test
+        let d = &args[2];
+        if is_directory(d) {
+            run(d);
         } else {
             println!("{} is not a directory!", d);
             exit(1);
         }
     } else if args[1] == "-vf" && args.len() == 3 {
-	// Verify file
-	let f = PathBuf::from(&args[2]);
+        // Verify file
+        let f = PathBuf::from(&args[2]);
 
-	if let Err(_) = verify_file(&f) {
-	    println!("File {} corrupt [ERROR]!\n",  f.display());
+        if let Err(_) = verify_file(&f) {
+            println!("File {} corrupt [ERROR]!\n",  f.display());
             exit(2);
-	}
-	println!("File {} validates [OK]!\n",  f.display());
+        }
+        println!("File {} validates [OK]!\n",  f.display());
         exit(0);
 
     } else if args[1] == "-rc" && args.len() == 5 {
-	// Re-create a file
-	let d = &args[2];
+        // Re-create a file
+        let d = &args[2];
 
         if is_directory(d) == false {
             println!("{} is not a directory!", d);
@@ -279,15 +279,15 @@ fn main() {
         let seed = args[3].parse::<usize>().unwrap();
         let file_size = args[4].parse::<usize>().unwrap();
 
-	if let Ok((f, _)) = create_file(d, Some(seed), Some(file_size)) {
-	    println!("File recreated as {}" , f.display());
-	    exit(0);
-	}
-	exit(1);
+        if let Ok((f, _)) = create_file(d, Some(seed), Some(file_size)) {
+            println!("File recreated as {}" , f.display());
+            exit(0);
+        }
+        exit(1);
 
     } else if args[1] == "-h"{
-	syntax();
+        syntax();
     } else {
-	syntax();
+        syntax();
     }
 }
