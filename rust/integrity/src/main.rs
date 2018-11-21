@@ -6,8 +6,7 @@ extern crate time;
 use crypto::digest::Digest;
 use crypto::md5::Md5;
 use nix::sys::signal;
-use nix::sys::statfs::statfs;
-use nix::sys::statfs::vfs::Statfs;
+use nix::sys::statvfs::statvfs;
 use rand::distributions::{IndependentSample, Range};
 use rand::{Rng, SeedableRng, StdRng};
 use std::cmp;
@@ -31,22 +30,10 @@ extern "C" fn handle_sigint(_: i32) {
 }
 
 fn disk_usage(path: &str) -> (u64, u64) {
-    let mut fs = Statfs {
-        f_bavail: 0,
-        f_bfree: 0,
-        f_type: 0,
-        f_frsize: 0,
-        f_ffree: 0,
-        f_namelen: 0,
-        f_fsid: 0,
-        f_blocks: 0,
-        f_files: 0,
-        f_spare: [0, 0, 0, 0, 0],
-        f_bsize: 0,
-    };
-    statfs(path, &mut fs).unwrap();
-    let free = (fs.f_bsize as u64 * fs.f_bfree) as u64;
-    let total = (fs.f_bsize as u64 * fs.f_blocks) as u64;
+    let fs = statvfs(path).unwrap();
+
+    let free = (fs.block_size() as u64 * fs.blocks_free()) as u64;
+    let total = (fs.block_size() as u64 * fs.blocks()) as u64;
     (total, free)
 }
 
@@ -288,7 +275,7 @@ fn main() {
 
     let sig_action = signal::SigAction::new(
         signal::SigHandler::Handler(handle_sigint),
-        signal::SaFlag::empty(),
+        signal::SaFlags::empty(),
         signal::SigSet::empty(),
     );
     unsafe {
