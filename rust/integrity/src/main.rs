@@ -75,7 +75,7 @@ fn run(directory: &str) {
     let mut total_bytes: u64 = 0;
     let mut l_exit = false;
 
-    while l_exit == false {
+    while !l_exit {
         match create_file(directory, None, None) {
             Ok((f_created, size)) => {
                 num_files_created += 1;
@@ -87,7 +87,7 @@ fn run(directory: &str) {
 
                 // Walk the list, verifying every file
                 for f in &files_created {
-                    if let Err(_) = verify_file(f) {
+                    if verify_file(f).is_err() {
                         println!("File {} not validating!", f.display());
                         println!(
                             "We created {} files with a total of {} bytes!",
@@ -196,7 +196,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
         .unwrap()
         .to_str()
         .unwrap();
-    let parts = f_name.split(":").collect::<Vec<&str>>();
+    let parts = f_name.split(':').collect::<Vec<&str>>();
 
     let name = parts[0];
     let meta_hash = parts[1];
@@ -227,7 +227,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
         ));
     }
 
-    let name_parts = name.split("-").collect::<Vec<&str>>();
+    let name_parts = name.split('-').collect::<Vec<&str>>();
     let file_data_hash = name_parts[0];
     let meta_size = name_parts[2].parse::<u64>().unwrap();
     let file_size = try!(metadata(full_file_name)).len();
@@ -308,7 +308,7 @@ fn main() {
         // Verify file
         let f = PathBuf::from(&args[2]);
 
-        if let Err(_) = verify_file(&f) {
+        if verify_file(&f).is_err() {
             println!("File {} corrupt [ERROR]!\n", f.display());
             exit(2);
         }
@@ -318,7 +318,7 @@ fn main() {
         // Re-create a file
         let d = &args[2];
 
-        if is_directory(d) == false {
+        if !is_directory(d) {
             println!("{} is not a directory!", d);
             exit(1);
         }
@@ -331,8 +331,6 @@ fn main() {
             exit(0);
         }
         exit(1);
-    } else if args[1] == "-h" {
-        syntax();
     } else {
         syntax();
     }
