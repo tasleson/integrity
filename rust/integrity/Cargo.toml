@@ -6,5 +6,5 @@ authors = ["Tony Asleson <tasleson@redhat.com>"]
 [dependencies]
 rand = "0.3"
 time = "0.1"
-rust-crypto = "0.2.35"
+rust-crypto = "0.2.36"
 nix = "0.11.0"
