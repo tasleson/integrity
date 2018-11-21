@@ -7,8 +7,9 @@ use crypto::digest::Digest;
 use crypto::md5::Md5;
 use nix::sys::signal;
 use nix::sys::statvfs::statvfs;
-use rand::distributions::{IndependentSample, Range};
-use rand::{Rng, SeedableRng, StdRng};
+use rand::distributions::Alphanumeric;
+use rand::rngs::StdRng;
+use rand::{thread_rng, Rng, SeedableRng};
 use std::cmp;
 use std::env;
 use std::fs;
@@ -16,6 +17,7 @@ use std::fs::metadata;
 use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
+use std::iter;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
@@ -37,10 +39,13 @@ fn disk_usage(path: &str) -> (u64, u64) {
     (total, free)
 }
 
-fn rs(seed: usize, file_size: usize) -> String {
-    let s: &[_] = &[seed];
-    let mut rng: StdRng = SeedableRng::from_seed(s);
-    rng.gen_ascii_chars().take(file_size).collect()
+fn rs(seed: u64, file_size: usize) -> String {
+    let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
+
+    iter::repeat(())
+        .map(|()| rng.sample(Alphanumeric))
+        .take(file_size)
+        .collect()
 }
 
 fn md5_sum(data: &str) -> String {
@@ -108,7 +113,7 @@ fn run(directory: &str) {
 
 fn create_file(
     directory: &str,
-    seed: Option<usize>,
+    seed: Option<u64>,
     file_size: Option<usize>,
 ) -> io::Result<(PathBuf, u64)> {
     let (f_total, f_free) = disk_usage(directory);
@@ -116,8 +121,6 @@ fn create_file(
     let l_file_size = match file_size {
         Some(size) => size,
         None => {
-            let between = Range::new(512, 1024 * 1024 * 8);
-            let mut rng = rand::thread_rng();
             let available = (f_total as f64 * 0.5) as u64;
 
             if f_free <= available {
@@ -127,14 +130,15 @@ fn create_file(
                 ));
             }
 
-            let tmp_file_size = between.ind_sample(&mut rng);
+            let mut rng = thread_rng();
+            let tmp_file_size = rng.gen_range(512, 1024 * 1024 * 8);
             cmp::min((f_free - available) as usize, tmp_file_size)
         }
     };
 
     let l_seed = match seed {
         Some(seed) => seed,
-        None => time::get_time().sec as usize,
+        None => time::get_time().sec as u64,
     };
 
     let data = rs(l_seed, l_file_size);
@@ -310,7 +314,7 @@ fn main() {
             exit(1);
         }
 
-        let seed = args[3].parse::<usize>().unwrap();
+        let seed = args[3].parse::<u64>().unwrap();
         let file_size = args[4].parse::<usize>().unwrap();
 
         if let Ok((f, _)) = create_file(d, Some(seed), Some(file_size)) {
