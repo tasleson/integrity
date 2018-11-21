@@ -22,11 +22,11 @@ use std::process::exit;
 use std::env;
 use nix::sys::signal;
 
-static mut exit_please: bool = false;
+static mut EXIT_PLEASE: bool = false;
 
 extern fn handle_sigint(_:i32) {
     unsafe {
-        exit_please = true;
+        EXIT_PLEASE = true;
     }
 }
 
@@ -98,7 +98,7 @@ fn run(directory: &str) {
         }
 
         unsafe {
-            l_exit = exit_please;
+            l_exit = EXIT_PLEASE;
         }
     }
     println!("We created {} files with a total of {} bytes!",
