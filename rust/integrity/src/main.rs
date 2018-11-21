@@ -1,39 +1,49 @@
-extern crate rand;
-extern crate time;
 extern crate crypto;
 extern crate nix;
+extern crate rand;
+extern crate time;
 
-use rand::{Rng, SeedableRng, StdRng};
-use rand::distributions::{IndependentSample, Range};
-use crypto::md5::Md5;
 use crypto::digest::Digest;
+use crypto::md5::Md5;
+use nix::sys::signal;
 use nix::sys::statfs::statfs;
 use nix::sys::statfs::vfs::Statfs;
+use rand::distributions::{IndependentSample, Range};
+use rand::{Rng, SeedableRng, StdRng};
 use std::cmp;
-use std::path::Path;
-use std::path::PathBuf;
+use std::env;
 use std::fs;
 use std::fs::metadata;
 use std::fs::File;
 use std::io;
 use std::io::{Read, Write};
-use std::vec::Vec;
+use std::path::Path;
+use std::path::PathBuf;
 use std::process::exit;
-use std::env;
-use nix::sys::signal;
+use std::vec::Vec;
 
 static mut EXIT_PLEASE: bool = false;
 
-extern fn handle_sigint(_:i32) {
+extern "C" fn handle_sigint(_: i32) {
     unsafe {
         EXIT_PLEASE = true;
     }
 }
 
-fn disk_usage(path : &str) -> (u64, u64) {
-    let mut fs = Statfs {f_bavail: 0, f_bfree: 0, f_type: 0, f_frsize: 0,
-                         f_ffree: 0, f_namelen: 0, f_fsid: 0, f_blocks: 0,
-                         f_files: 0, f_spare: [0,0,0,0,0], f_bsize: 0};
+fn disk_usage(path: &str) -> (u64, u64) {
+    let mut fs = Statfs {
+        f_bavail: 0,
+        f_bfree: 0,
+        f_type: 0,
+        f_frsize: 0,
+        f_ffree: 0,
+        f_namelen: 0,
+        f_fsid: 0,
+        f_blocks: 0,
+        f_files: 0,
+        f_spare: [0, 0, 0, 0, 0],
+        f_bsize: 0,
+    };
     statfs(path, &mut fs).unwrap();
     let free = (fs.f_bsize as u64 * fs.f_bfree) as u64;
     let total = (fs.f_bsize as u64 * fs.f_blocks) as u64;
@@ -71,7 +81,7 @@ fn run(directory: &str) {
                 num_files_created += 1;
                 total_bytes += size as u64;
                 files_created.push(f_created);
-            },
+            }
             Err(_) => {
                 println!("Full, verify and delete sequence starting...");
 
@@ -79,8 +89,10 @@ fn run(directory: &str) {
                 for f in &files_created {
                     if let Err(_) = verify_file(f) {
                         println!("File {} not validating!", f.display());
-                        println!("We created {} files with a total of {} bytes!",
-                            num_files_created, total_bytes);
+                        println!(
+                            "We created {} files with a total of {} bytes!",
+                            num_files_created, total_bytes
+                        );
                         exit(1);
                     }
                 }
@@ -90,35 +102,42 @@ fn run(directory: &str) {
                 for i in (0..count).rev().filter(|&x| x % 2 == 0) {
                     let file_to_delete = files_created.remove(i);
                     //println!("Deleting file {}", file_to_delete);
-                    let error_msg = format!("Error: Unable to remove file {}!",
-                                            file_to_delete.display());
+                    let error_msg =
+                        format!("Error: Unable to remove file {}!", file_to_delete.display());
                     fs::remove_file(file_to_delete).expect(&error_msg);
                 }
-            },
+            }
         }
 
         unsafe {
             l_exit = EXIT_PLEASE;
         }
     }
-    println!("We created {} files with a total of {} bytes!",
-            num_files_created, total_bytes);
+    println!(
+        "We created {} files with a total of {} bytes!",
+        num_files_created, total_bytes
+    );
 }
 
-fn create_file(directory: &str, seed: Option<usize>, file_size: Option<usize>) -> io::Result<(PathBuf, u64)> {
+fn create_file(
+    directory: &str,
+    seed: Option<usize>,
+    file_size: Option<usize>,
+) -> io::Result<(PathBuf, u64)> {
     let (f_total, f_free) = disk_usage(directory);
 
     let l_file_size = match file_size {
         Some(size) => size,
         None => {
-            let between = Range::new(512, 1024*1024*8);
+            let between = Range::new(512, 1024 * 1024 * 8);
             let mut rng = rand::thread_rng();
             let available = (f_total as f64 * 0.5) as u64;
 
             if f_free <= available {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    format!("f_free {} <= available {}", f_free, available)));
+                    format!("f_free {} <= available {}", f_free, available),
+                ));
             }
 
             let tmp_file_size = between.ind_sample(&mut rng);
@@ -147,15 +166,20 @@ fn create_file(directory: &str, seed: Option<usize>, file_size: Option<usize>) -
             final_name
         } else {
             match (0..50)
-                .map(|num| final_name.with_file_name(
-                    format!("{}.{}", final_name.display(), num)))
-                .find(|pathbuf| !pathbuf.exists()) {
-                    Some(x) => x,
-                    None => return Err(io::Error::new(
+                .map(|num| final_name.with_file_name(format!("{}.{}", final_name.display(), num)))
+                .find(|pathbuf| !pathbuf.exists())
+            {
+                Some(x) => x,
+                None => {
+                    return Err(io::Error::new(
                         io::ErrorKind::InvalidInput,
-                        format!("Could not generate unique name for {}",
-                                final_name.display())))
+                        format!(
+                            "Could not generate unique name for {}",
+                            final_name.display()
+                        ),
+                    ))
                 }
+            }
         }
     };
 
@@ -167,7 +191,11 @@ fn create_file(directory: &str, seed: Option<usize>, file_size: Option<usize>) -
 
 fn verify_file(full_file_name: &Path) -> io::Result<()> {
     // First verify the meta data is intact
-    let f_name = Path::new(full_file_name).file_name().unwrap().to_str().unwrap();
+    let f_name = Path::new(full_file_name)
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap();
     let parts = f_name.split(":").collect::<Vec<&str>>();
 
     let name = parts[0];
@@ -178,8 +206,11 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
     if extension.starts_with("integrity") != true {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("File extension {} does not end in \"integrity*\"!",
-                    full_file_name.display())));
+            format!(
+                "File extension {} does not end in \"integrity*\"!",
+                full_file_name.display()
+            ),
+        ));
     }
 
     // Check metadata
@@ -187,8 +218,13 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
     if meta_hash != f_hash {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("File {} meta data not valid! (stored = {}, calculated = {})",
-                    full_file_name.display(), meta_hash, f_hash)));
+            format!(
+                "File {} meta data not valid! (stored = {}, calculated = {})",
+                full_file_name.display(),
+                meta_hash,
+                f_hash
+            ),
+        ));
     }
 
     let name_parts = name.split("-").collect::<Vec<&str>>();
@@ -196,12 +232,16 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
     let meta_size = name_parts[2].parse::<u64>().unwrap();
     let file_size = try!(metadata(full_file_name)).len();
 
-
     if meta_size != file_size {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("File {} incorrect size! (expected = {}, current = {})\n",
-                    full_file_name.display(), meta_size, file_size)));
+            format!(
+                "File {} incorrect size! (expected = {}, current = {})\n",
+                full_file_name.display(),
+                meta_size,
+                file_size
+            ),
+        ));
     }
 
     // Read in the data
@@ -217,8 +257,13 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
     if file_data_hash != calculated {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("File {} md5 miss-match! (expected = {}, current = {})",
-                    full_file_name.display(), file_data_hash, calculated)));
+            format!(
+                "File {} md5 miss-match! (expected = {}, current = {})",
+                full_file_name.display(),
+                file_data_hash,
+                calculated
+            ),
+        ));
     }
 
     Ok(())
@@ -226,8 +271,11 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
 
 fn syntax() {
     let prg = &env::args().nth(0).unwrap();
-    println!("Usage: {} \n[-h] [-vf <file> | -r <directory> |-rc  \
-              <directory> <seed> <size>]\n", prg);
+    println!(
+        "Usage: {} \n[-h] [-vf <file> | -r <directory> |-rc  \
+         <directory> <seed> <size>]\n",
+        prg
+    );
     exit(1);
 }
 
@@ -241,10 +289,10 @@ fn main() {
     let sig_action = signal::SigAction::new(
         signal::SigHandler::Handler(handle_sigint),
         signal::SaFlag::empty(),
-        signal::SigSet::empty());
+        signal::SigSet::empty(),
+    );
     unsafe {
-        signal::sigaction(signal::SIGINT, &sig_action).
-            expect("Unable to install signal handler!");
+        signal::sigaction(signal::SIGINT, &sig_action).expect("Unable to install signal handler!");
     }
 
     if args[1] == "-r" && args.len() == 3 {
@@ -261,12 +309,11 @@ fn main() {
         let f = PathBuf::from(&args[2]);
 
         if let Err(_) = verify_file(&f) {
-            println!("File {} corrupt [ERROR]!\n",  f.display());
+            println!("File {} corrupt [ERROR]!\n", f.display());
             exit(2);
         }
-        println!("File {} validates [OK]!\n",  f.display());
+        println!("File {} validates [OK]!\n", f.display());
         exit(0);
-
     } else if args[1] == "-rc" && args.len() == 5 {
         // Re-create a file
         let d = &args[2];
@@ -280,12 +327,11 @@ fn main() {
         let file_size = args[4].parse::<usize>().unwrap();
 
         if let Ok((f, _)) = create_file(d, Some(seed), Some(file_size)) {
-            println!("File recreated as {}" , f.display());
+            println!("File recreated as {}", f.display());
             exit(0);
         }
         exit(1);
-
-    } else if args[1] == "-h"{
+    } else if args[1] == "-h" {
         syntax();
     } else {
         syntax();
