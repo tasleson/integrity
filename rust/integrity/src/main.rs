@@ -174,7 +174,7 @@ fn create_file(
         }
     };
 
-    let mut f = try!(File::create(&final_name));
+    let mut f = File::create(&final_name)?;
     f.write_all(data.as_bytes()).expect("Shorted write?");
 
     Ok((final_name, l_file_size as u64))
@@ -221,7 +221,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
     let name_parts = name.split('-').collect::<Vec<&str>>();
     let file_data_hash = name_parts[0];
     let meta_size = name_parts[2].parse::<u64>().unwrap();
-    let file_size = try!(metadata(full_file_name)).len();
+    let file_size = metadata(full_file_name)?.len();
 
     if meta_size != file_size {
         return Err(io::Error::new(
@@ -238,7 +238,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
     // Read in the data
     let mut data = String::new();
 
-    let mut f = try!(File::open(full_file_name));
+    let mut f = File::open(full_file_name)?;
     f.read_to_string(&mut data).expect("Shorted read?");
 
     // Generate the md5
