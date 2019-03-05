@@ -126,6 +126,21 @@ func create_file(directory string, seed int64, file_size uint64) (string, uint64
 		panic(err)
 	}
 
+	d, err := os.OpenFile(directory, os.O_RDONLY, 0744)
+	if err != nil {
+	    panic(err)
+	}
+
+	err = d.Sync()
+	if err != nil {
+		panic(err)
+	}
+
+	err = d.Close()
+	if err != nil {
+		panic(err)
+	}
+
 	return final_name, file_size
 }
 
