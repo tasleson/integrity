@@ -1,4 +1,4 @@
-#!/bin/env python2
+#!/bin/env python3
 #
 # Theory of operation:
 # randomly create files until you get the FS 50% full
@@ -27,7 +27,7 @@ def rs(seed, l):
     Generate a random string
     """
     random.seed(seed)
-    return ''.join([cs[int(random.random() * 26)] for _ in xrange(l)])
+    return ''.join([cs[int(random.random() * 26)] for _ in range(l)])
 
 
 def disk_usage(path):
@@ -39,7 +39,7 @@ def disk_usage(path):
 
 def md5(t):
     h = hashlib.md5()
-    h.update(t)
+    h.update(t.encode("utf-8"))
     return h.hexdigest()
 
 
@@ -56,7 +56,7 @@ def create_file(directory, seed=0, file_size=0):
         file_size = min(free, r_file_size)
 
     if seed == 0:
-        seed = time.time()
+        seed = int(time.time())
 
     data = rs(seed, file_size)
 
@@ -119,7 +119,7 @@ def verify_file(full_file_name):
     with open(full_file_name, 'r') as in_file:
         d = in_file.read(4096)
         while d:
-            h.update(d)
+            h.update(d.encode("utf-8"))
             d = in_file.read(4096)
 
     calculated = h.hexdigest()
@@ -135,7 +135,7 @@ def test(directory):
     # Create files and random directories in the supplied directory
     files_created = []
     num_files_created = 0
-    total_bytes = 0L
+    total_bytes = 0
 
     try:
         while True:
