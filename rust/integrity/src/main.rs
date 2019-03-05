@@ -178,6 +178,8 @@ fn create_file(
     f.write_all(data.as_bytes())?;
     f.sync_all()?;
 
+    File::open(directory)?.sync_all()?;
+
     Ok((final_name, l_file_size as u64))
 }
 
