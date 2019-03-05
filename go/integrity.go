@@ -107,7 +107,21 @@ func create_file(directory string, seed int64, file_size uint64) (string, uint64
 		return "", 0
 	}
 
-	err := ioutil.WriteFile(final_name, data, 0744)
+	f, err := os.OpenFile(final_name, os.O_RDWR|os.O_CREATE, 0744)
+	if err != nil {
+		panic(err)
+	}
+
+	if _, err := f.Write(data); err != nil {
+		panic(err)
+	}
+
+	err = f.Sync()
+	if err != nil {
+		panic(err)
+	}
+
+	err = f.Close()
 	if err != nil {
 		panic(err)
 	}
