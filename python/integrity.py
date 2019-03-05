@@ -83,6 +83,10 @@ def create_file(directory, seed=0, file_size=0):
         out.flush()
         os.fsync(out.fileno())
 
+    fd = os.open(directory, os.O_RDONLY)
+    os.fsync(fd)
+    os.close(fd)
+
     return final_name, file_size
 
 
