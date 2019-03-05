@@ -175,7 +175,8 @@ fn create_file(
     };
 
     let mut f = File::create(&final_name)?;
-    f.write_all(data.as_bytes()).expect("Shorted write?");
+    f.write_all(data.as_bytes())?;
+    f.sync_all()?;
 
     Ok((final_name, l_file_size as u64))
 }
