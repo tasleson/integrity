@@ -80,6 +80,8 @@ def create_file(directory, seed=0, file_size=0):
 
     with open(final_name, 'w') as out:
         out.write(data)
+        out.flush()
+        os.fsync(out.fileno())
 
     return final_name, file_size
 
