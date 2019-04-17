@@ -16,7 +16,7 @@ import (
 	"time"
 )
 
-var exit_please = false
+var exitPlease = false
 
 func syntax() {
 	fmt.Printf("Usage: %s \n[-h] [-vf <file> | -r <directory> |"+
@@ -24,7 +24,7 @@ func syntax() {
 	os.Exit(1)
 }
 
-func is_directory(path string) bool {
+func isDirectory(path string) bool {
 
 	if fileInfo, err := os.Stat(path); err == nil {
 		return fileInfo.IsDir()
@@ -32,7 +32,7 @@ func is_directory(path string) bool {
 	return false
 }
 
-func disk_usage(path string) (uint64, uint64) {
+func diskUsage(path string) (uint64, uint64) {
 	var stat syscall.Statfs_t
 
 	syscall.Statfs(path, &stat)
@@ -41,73 +41,73 @@ func disk_usage(path string) (uint64, uint64) {
 	return total, free
 }
 
-var ascii_uppercase = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var asciiUppercase = []byte("ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-func rs(seed int64, file_size uint64) []byte {
-	b := make([]byte, file_size)
+func rs(seed int64, fileSize uint64) []byte {
+	b := make([]byte, fileSize)
 
 	rand.Seed(seed)
 
 	for i := range b {
-		b[i] = ascii_uppercase[rand.Intn(len(ascii_uppercase))]
+		b[i] = asciiUppercase[rand.Intn(len(asciiUppercase))]
 	}
 	return b
 }
 
-func md5_sum(data []byte) string {
+func md5Sum(data []byte) string {
 	sum := md5.Sum(data)
 	return hex.EncodeToString(sum[:])
 }
 
-func create_file(directory string, seed int64, file_size uint64) (string, uint64) {
-	total, free := disk_usage(directory)
+func createFile(directory string, seed int64, fileSize uint64) (string, uint64) {
+	total, free := diskUsage(directory)
 
-	if file_size == 0 {
+	if fileSize == 0 {
 		available := uint64(float64(total) * float64(0.50))
 		if free <= available {
 			return "", 0
 		}
 		free -= available
-		r_file_size := uint64(512 + rand.Intn(1024*1024*8))
-		if free > r_file_size {
-			file_size = r_file_size
+		randFileSize := uint64(512 + rand.Intn(1024*1024*8))
+		if free > randFileSize {
+			fileSize = randFileSize
 		} else {
-			file_size = free
+			fileSize = free
 		}
 	}
 
 	if seed == 0 {
-		t_now := time.Now()
-		seed = t_now.Unix()
+		timeNow := time.Now()
+		seed = timeNow.Unix()
 	}
 
-	data := rs(seed, file_size)
+	data := rs(seed, fileSize)
 
-	file_hash := md5_sum(data)
+	fileHash := md5Sum(data)
 
 	// Build the file name and protect it with a md5 too
-	fn := fmt.Sprintf("%s-%d-%d", file_hash, seed, file_size)
-	fn_hash := md5_sum([]byte(fn))
-	final_name := path.Join(directory,
-		fmt.Sprintf("%s:%s:integrity", fn, fn_hash))
+	fn := fmt.Sprintf("%s-%d-%d", fileHash, seed, fileSize)
+	fileNameHash := md5Sum([]byte(fn))
+	finalName := path.Join(directory,
+		fmt.Sprintf("%s:%s:integrity", fn, fileNameHash))
 
 	// Check to see if a file doesn't already exist
-	if _, err := os.Stat(final_name); err == nil {
+	if _, err := os.Stat(finalName); err == nil {
 		for i := 0; i < 50; i++ {
-			tmp := final_name + fmt.Sprintf(".%d", i)
+			tmp := finalName + fmt.Sprintf(".%d", i)
 
 			if _, err := os.Stat(tmp); os.IsNotExist(err) {
-				final_name = tmp
+				finalName = tmp
 				break
 			}
 		}
 	}
 
-	if _, err := os.Stat(final_name); err == nil {
+	if _, err := os.Stat(finalName); err == nil {
 		return "", 0
 	}
 
-	f, err := os.OpenFile(final_name, os.O_RDWR|os.O_CREATE, 0744)
+	f, err := os.OpenFile(finalName, os.O_RDWR|os.O_CREATE, 0744)
 	if err != nil {
 		panic(err)
 	}
@@ -128,7 +128,7 @@ func create_file(directory string, seed int64, file_size uint64) (string, uint64
 
 	d, err := os.OpenFile(directory, os.O_RDONLY, 0744)
 	if err != nil {
-	    panic(err)
+		panic(err)
 	}
 
 	err = d.Sync()
@@ -141,19 +141,19 @@ func create_file(directory string, seed int64, file_size uint64) (string, uint64
 		panic(err)
 	}
 
-	return final_name, file_size
+	return finalName, fileSize
 }
 
-func file_size_get(full_file_name string) (int64, error) {
-	if file, err := os.Open(full_file_name); err == nil {
+func fileSizeGet(fullFileName string) (int64, error) {
+	var file, err = os.Open(fullFileName)
+
+	if err == nil {
 		if fi, err := file.Stat(); err == nil {
 			return fi.Size(), nil
-		} else {
-			return -1, err
 		}
-	} else {
 		return -1, err
 	}
+	return -1, err
 }
 
 func check(err error) {
@@ -162,62 +162,62 @@ func check(err error) {
 	}
 }
 
-func verify_file(full_file_name string) bool {
+func verifyFile(fullFileName string) bool {
 	// First verify the meta data is intact
-	f_name := path.Base(full_file_name)
-	parts := strings.Split(f_name, ":")
+	fileName := path.Base(fullFileName)
+	parts := strings.Split(fileName, ":")
 
 	name := parts[0]
-	meta_hash := parts[1]
+	metaHash := parts[1]
 	extension := parts[2]
 
 	if strings.HasPrefix(extension, "integrity") != true {
 		fmt.Printf("File extension %s does not end in \"integrity*\"!\n",
-			full_file_name)
+			fullFileName)
 		return false
 	}
 
-	f_hash := md5_sum([]byte(name))
-	if meta_hash != f_hash {
+	fileHash := md5Sum([]byte(name))
+	if metaHash != fileHash {
 		fmt.Printf("File %s meta data not valid! (stored = %s, calculated = %s)\n",
-			full_file_name, meta_hash, f_hash)
+			fullFileName, metaHash, fileHash)
 		return false
 	}
 
 	// check file size
 	parts = strings.Split(name, "-")
-	file_data_hash := parts[0]
-	meta_size_str := parts[2]
+	fileDataHash := parts[0]
+	metaSizeStr := parts[2]
 
-	meta_size, err := strconv.ParseInt(meta_size_str, 10, 64)
+	metaSize, err := strconv.ParseInt(metaSizeStr, 10, 64)
 	check(err)
 
-	file_size, err := file_size_get(full_file_name)
+	fileSize, err := fileSizeGet(fullFileName)
 	check(err)
 
-	if file_size != meta_size {
+	if fileSize != metaSize {
 		fmt.Printf("File %s incorrect size! (expected = %d, current = %d)\n",
-			full_file_name, meta_size, file_size)
+			fullFileName, metaSize, fileSize)
 		return false
 	}
 
-	data, err := ioutil.ReadFile(full_file_name)
+	data, err := ioutil.ReadFile(fullFileName)
 	check(err)
 
 	// Finally check the data bytes
-	calculated := md5_sum(data)
+	calculated := md5Sum(data)
 
-	if calculated != file_data_hash {
+	if calculated != fileDataHash {
 		print("File %s md5 miss-match! (expected = %s, current = %s)",
-			full_file_name, file_data_hash, calculated)
+			fullFileName, fileDataHash, calculated)
 		return false
 	}
 
 	return true
 }
 
-func is_dir_or_exit(d string) {
-	if false == is_directory(d) {
+func isDirOrExit(d string) {
+	if false == isDirectory(d) {
 		fmt.Printf("%s is not a directory!\n", d)
 		os.Exit(1)
 	}
@@ -225,41 +225,41 @@ func is_dir_or_exit(d string) {
 
 func test(directory string) {
 	// Create files and random directories in the supplied directory
-	var files_created []string
-	num_files_created := 0
-	var total_bytes = uint64(0)
+	var filesCreated []string
+	numFilesCreated := 0
+	var totalBytes = uint64(0)
 
 	for {
-		if exit_please {
+		if exitPlease {
 			fmt.Printf("We created %d files with a total of %d bytes!\n",
-				num_files_created, total_bytes)
+				numFilesCreated, totalBytes)
 			os.Exit(0)
 		}
 
-		f_created, size := create_file(directory, 0, 0)
+		fileCreateSize, size := createFile(directory, 0, 0)
 
 		if size > 0 {
-			num_files_created += 1
-			total_bytes += size
-			files_created = append(files_created, f_created)
+			numFilesCreated++
+			totalBytes += size
+			filesCreated = append(filesCreated, fileCreateSize)
 		} else {
 			fmt.Printf("Full, verify and delete sequence starting...\n")
 			// We don't have space, lets verify all and then
 			// delete every other file
-			for _, element := range files_created {
-				if verify_file(element) != true {
+			for _, element := range filesCreated {
+				if verifyFile(element) != true {
 					fmt.Printf("File %s not validating!\n", element)
 					fmt.Printf("We created %d files with a total of %d bytes!\n",
-						num_files_created, total_bytes)
+						numFilesCreated, totalBytes)
 					os.Exit(1)
 				}
 			}
 
-			for i := len(files_created) - 1; i >= 0; i -= 2 {
-				fn := files_created[i]
+			for i := len(filesCreated) - 1; i >= 0; i -= 2 {
+				fn := filesCreated[i]
 				err := os.Remove(fn)
 				check(err)
-				files_created = append(files_created[:i], files_created[i+1:]...)
+				filesCreated = append(filesCreated[:i], filesCreated[i+1:]...)
 			}
 		}
 	}
@@ -271,7 +271,7 @@ func main() {
 
 	go func() {
 		sig := <-sigs
-		exit_please = true
+		exitPlease = true
 		fmt.Print("\nGot signal: ", sig, "\n")
 	}()
 
@@ -282,13 +282,13 @@ func main() {
 	if os.Args[1] == "-r" && len(os.Args) == 3 {
 		// Run test
 		d := os.Args[2]
-		is_dir_or_exit(d)
+		isDirOrExit(d)
 		test(d)
 	} else if os.Args[1] == "-vf" && len(os.Args) == 3 {
 		// Verify file
 		f := os.Args[2]
 
-		if verify_file(os.Args[2]) == false {
+		if verifyFile(os.Args[2]) == false {
 			fmt.Printf("File %s corrupt [ERROR]!\n", f)
 			os.Exit(2)
 		}
@@ -298,17 +298,17 @@ func main() {
 	} else if os.Args[1] == "-rc" && len(os.Args) == 5 {
 		// Re-create a file
 		d := os.Args[2]
-		is_dir_or_exit(d)
+		isDirOrExit(d)
 
-		seed, err_seed := strconv.ParseInt(os.Args[3], 10, 64)
-		file_size, err_fs := strconv.ParseUint(os.Args[4], 10, 64)
+		seed, errSeed := strconv.ParseInt(os.Args[3], 10, 64)
+		fileSize, errFs := strconv.ParseUint(os.Args[4], 10, 64)
 
-		if err_seed != nil || err_fs != nil {
+		if errSeed != nil || errFs != nil {
 			fmt.Printf("Seed or file size incorrect!\n")
 			os.Exit(1)
 		}
 
-		f, _ := create_file(d, seed, file_size)
+		f, _ := createFile(d, seed, fileSize)
 		if f != "" {
 			fmt.Printf("File recreate as %s\n", f)
 			os.Exit(0)
