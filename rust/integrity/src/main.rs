@@ -197,7 +197,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
     let extension = parts[2];
 
     // Check extension
-    if extension.starts_with("integrity") != true {
+    if !extension.starts_with("integrity") {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!(
