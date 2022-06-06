@@ -264,7 +264,7 @@ fn verify_file(full_file_name: &Path) -> io::Result<()> {
 }
 
 fn syntax() {
-    let prg = &env::args().nth(0).unwrap();
+    let prg = &env::args().next().unwrap();
     println!(
         "Usage: {} \n[-h] [-vf <file> | -r <directory> |-rc  \
          <directory> <seed> <size>]\n",
