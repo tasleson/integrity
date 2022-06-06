@@ -7,4 +7,4 @@ authors = ["Tony Asleson <tasleson@redhat.com>"]
 rand = "0.6.0"
 time = "0.1"
 rust-crypto = "0.2.36"
-nix = "0.11.0"
+nix = "0.24.1"
