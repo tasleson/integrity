@@ -69,11 +69,13 @@ def create_file(directory, seed=0, file_size=0):
 
     # Check to make sure file doesn't already exist
     if os.path.exists(final_name):
-        for i in range(1, 50):
+        i = 0
+        while True:
             tmp = final_name + ".%d" % i
             if not os.path.exists(tmp):
                 final_name = tmp
                 break
+            i += 1
 
     if os.path.exists(final_name):
         return "", 0
