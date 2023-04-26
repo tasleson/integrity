@@ -93,7 +93,7 @@ def create_file(directory, seed=0, file_size=0):
 
 
 def verify_file(full_file_name):
-    # First verify the meta data is intact
+    # First verify the metadata is intact
     f_name = os.path.basename(full_file_name)
     name, meta_hash, extension = f_name.split(':')
 
