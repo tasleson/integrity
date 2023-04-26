@@ -28,6 +28,7 @@ MAX_FILE_SIZE = 1024*1024*8
 SEED = 0
 PERCENT_FREE = 0.50
 BLOCK_SIZE = 512
+FILE_COUNT = 0
 
 
 def rs(str_len):
@@ -157,12 +158,14 @@ def test(directory, seed):
     files_created = []
     num_files_created = 0
     total_bytes = 0
+    current_count = 0
 
     try:
-        while True:
+        while FILE_COUNT == 0 or current_count < FILE_COUNT:
             f_created, size = create_file(directory, seed=seed)
             if f_created:
                 num_files_created += 1
+                current_count = current_count + 1 if FILE_COUNT != 0 else 0
                 total_bytes += size
                 files_created.append(f_created)
             else:
@@ -184,6 +187,9 @@ def test(directory, seed):
                     fn = files_created[i]
                     os.remove(fn)
                     del files_created[i]
+
+        print("Exiting on number of file limit reached")
+
     except KeyboardInterrupt:
         print("Exiting: We created %s files with a total of %s bytes!" %
               (str(num_files_created), str(total_bytes)))
@@ -201,14 +207,18 @@ if __name__ == '__main__':
                        action="store", dest="recreate_args", default=None,
                        help="Recreate a file given a <directory> <seed> <size>")
     parser.add_argument('-qf', '--quit-on-full', action="store_true", dest="quit_on_full",
-                        default=False, help="Exit when you fill up FS to 50 percent")
+                        default=False, help="Exit when you fill up FS to 'percent_free'")
     parser.add_argument('-dup', '--duplicate', action="store_true", dest="duplicate",
                         default=False,
                         help="Create files which contain data that is similar")
     parser.add_argument('-s', '--seed', dest="seed", default=0, action="store", type=int,
                         help="Test run overall seed, allows you to recreate the exact same sequence")
-    parser.add_argument('-pf', '--percent_free', dest="percent_free", default=0.50, action="store", type=float,
+
+    group2 = parser.add_mutually_exclusive_group()
+    group2.add_argument('-pf', '--percent_free', dest="percent_free", default=0.50, action="store", type=float,
                         help="What percent free should remain on FS before we start the delete sequence, or exit")
+    group2.add_argument('-c', '--count', dest="file_count", default=0, action="store", type=int,
+                        help="Number of files to create before optionally exiting, or starting delete sequence")
 
     args = parser.parse_args()
 
@@ -217,6 +227,7 @@ if __name__ == '__main__':
     SEED = args.seed if args.seed != 0 else int(datetime.datetime.now().microsecond)
     random.seed(SEED)
     PERCENT_FREE = args.percent_free
+    FILE_COUNT = args.file_count
 
     if args.run_dir:
         if os.path.isdir(args.run_dir):
