@@ -22,13 +22,13 @@ import datetime
 cs = list(string.ascii_uppercase + string.ascii_lowercase + string.digits)
 
 QUIT_ON_FULL = False
-DUPLICATE=False
-DUPLICATE_DATA=None
+DUPLICATE = False
+DUPLICATE_DATA = None
 MAX_FILE_SIZE = 1024*1024*8
-SEED=0
+SEED = 0
 
 
-def rs(l):
+def rs(str_len):
     """
     Generate a random string
     """
@@ -38,8 +38,8 @@ def rs(l):
     if DUPLICATE:
         if DUPLICATE_DATA is None:
             DUPLICATE_DATA = ''.join([cs[int(random.random() * len(cs))] for _ in range(MAX_FILE_SIZE)])
-        return DUPLICATE_DATA[0:l]
-    return ''.join([cs[int(random.random() * len(cs))] for _ in range(l)])
+        return DUPLICATE_DATA[0:str_len]
+    return ''.join([cs[int(random.random() * len(cs))] for _ in range(str_len)])
 
 
 def disk_usage(path):
