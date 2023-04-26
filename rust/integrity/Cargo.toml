@@ -4,7 +4,6 @@ version = "0.0.1"
 authors = ["Tony Asleson <tasleson@redhat.com>"]
 
 [dependencies]
-rand = "0.6.0"
-time = "0.1"
-rust-crypto = "0.2.36"
-nix = "0.24.1"
+rand = "0.8.5"
+md5 = "0.7.0"
+nix = "0.26.2"

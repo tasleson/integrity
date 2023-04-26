@@ -1,10 +1,8 @@
-extern crate crypto;
 extern crate nix;
 extern crate rand;
-extern crate time;
+extern crate md5;
 
-use crypto::digest::Digest;
-use crypto::md5::Md5;
+
 use nix::sys::signal;
 use nix::sys::statvfs::statvfs;
 use rand::distributions::Alphanumeric;
@@ -21,6 +19,7 @@ use std::iter;
 use std::path::Path;
 use std::path::PathBuf;
 use std::process::exit;
+use std::time::{SystemTime, UNIX_EPOCH};
 use std::vec::Vec;
 
 static mut EXIT_PLEASE: bool = false;
@@ -43,15 +42,14 @@ fn rs(seed: u64, file_size: usize) -> String {
     let mut rng: StdRng = SeedableRng::seed_from_u64(seed);
 
     iter::repeat(())
-        .map(|()| rng.sample(Alphanumeric))
+        .map(|()| rng.sample(Alphanumeric) as char)
         .take(file_size)
         .collect()
 }
 
 fn md5_sum(data: &str) -> String {
-    let mut hasher = Md5::new();
-    hasher.input_str(data);
-    hasher.result_str()
+    let digest = md5::compute(data);
+    format!("{:x}", digest)
 }
 
 fn is_directory(path: &str) -> bool {
@@ -111,6 +109,13 @@ fn run(directory: &str) {
     );
 }
 
+fn get_epoch_secs() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap()
+        .as_secs()
+}
+
 fn create_file(
     directory: &str,
     seed: Option<u64>,
@@ -131,14 +136,14 @@ fn create_file(
             }
 
             let mut rng = thread_rng();
-            let tmp_file_size = rng.gen_range(512, 1024 * 1024 * 8);
+            let tmp_file_size = rng.gen_range(512..(1024 * 1024 * 8));
             cmp::min((f_free - available) as usize, tmp_file_size)
         }
     };
 
     let l_seed = match seed {
         Some(seed) => seed,
-        None => time::get_time().sec as u64,
+        None => get_epoch_secs(),
     };
 
     let data = rs(l_seed, l_file_size);
