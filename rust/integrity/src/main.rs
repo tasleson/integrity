@@ -1,7 +1,6 @@
+extern crate md5;
 extern crate nix;
 extern crate rand;
-extern crate md5;
-
 
 use nix::sys::signal;
 use nix::sys::statvfs::statvfs;
