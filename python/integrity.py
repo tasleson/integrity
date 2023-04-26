@@ -109,7 +109,7 @@ def verify_file(full_file_name):
         return False
 
     # check file size
-    file_data_hash, seed, file_size = name.split('-')
+    file_data_hash, _, file_size = name.split('-')
     if os.path.getsize(full_file_name) != int(file_size):
         print("File %s incorrect size! (expected = %d, current = %d)" %
               (full_file_name, file_size, os.path.getsize(full_file_name)))
