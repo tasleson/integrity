@@ -191,8 +191,8 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-vf', '--verify-file', action="store",
-                       dest="verify_file",
-                       type=str, help="File to verify", default="")
+                       dest="verify_files", nargs="+",
+                       type=str, help="File(s) to verify", default="")
     group.add_argument('-r', '--run', action="store", dest="run_dir",
                        type=str, help="Directory to run test in", default="")
     group.add_argument('-rc', '--recreate', nargs=3,
@@ -219,11 +219,12 @@ if __name__ == '__main__':
         else:
             print("%s is not a directory!" % args.run_dir)
             sys.exit(1)
-    elif args.verify_file:
-        if not verify_file(args.verify_file):
-            print('File %s corrupt [ERROR]!' % args.verify_file)
-            sys.exit(2)
-        print('File %s validates [OK]!' % args.verify_file)
+    elif args.verify_files:
+        for f in args.verify_files:
+            if not verify_file(f):
+                print('File %s corrupt [ERROR]!' % f)
+                sys.exit(2)
+            print('File %s validates [OK]!' % f)
         sys.exit(0)
     elif args.recreate_args:
         if SEED != 0:
