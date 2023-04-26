@@ -207,6 +207,8 @@ if __name__ == '__main__':
                         help="Create files which contain data that is similar")
     parser.add_argument('-s', '--seed', dest="seed", default=0, action="store", type=int,
                         help="Test run overall seed, allows you to recreate the exact same sequence")
+    parser.add_argument('-pf', '--percent_free', dest="percent_free", default=0.50, action="store", type=float,
+                        help="What percent free should remain on FS before we start the delete sequence, or exit")
 
     args = parser.parse_args()
 
@@ -214,6 +216,7 @@ if __name__ == '__main__':
     DUPLICATE = args.duplicate
     SEED = args.seed if args.seed != 0 else int(datetime.datetime.now().microsecond)
     random.seed(SEED)
+    PERCENT_FREE = args.percent_free
 
     if args.run_dir:
         if os.path.isdir(args.run_dir):
