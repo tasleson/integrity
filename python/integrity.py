@@ -19,7 +19,7 @@ import sys
 import argparse
 import string
 
-cs = list(string.ascii_uppercase)
+cs = list(string.ascii_uppercase + string.ascii_lowercase + string.digits)
 
 
 def rs(seed, l):
