@@ -14,20 +14,32 @@
 import random
 import hashlib
 import os
-import time
 import sys
 import argparse
 import string
+import datetime
 
 cs = list(string.ascii_uppercase + string.ascii_lowercase + string.digits)
 
+QUIT_ON_FULL = False
+DUPLICATE=False
+DUPLICATE_DATA=None
+MAX_FILE_SIZE = 1024*1024*8
+SEED=0
 
-def rs(seed, l):
+
+def rs(l):
     """
     Generate a random string
     """
-    random.seed(seed)
-    return ''.join([cs[int(random.random() * 26)] for _ in range(l)])
+    global DUPLICATE
+    global DUPLICATE_DATA
+
+    if DUPLICATE:
+        if DUPLICATE_DATA is None:
+            DUPLICATE_DATA = ''.join([cs[int(random.random() * len(cs))] for _ in range(MAX_FILE_SIZE)])
+        return DUPLICATE_DATA[0:l]
+    return ''.join([cs[int(random.random() * len(cs))] for _ in range(l)])
 
 
 def disk_usage(path):
@@ -43,6 +55,10 @@ def md5(t):
     return h.hexdigest()
 
 
+def _round_to_block_size(size):
+    return size if size % 512 == 0 else size + 512 - size % 512
+
+
 def create_file(directory, seed=0, file_size=0):
     total, free = disk_usage(directory)
 
@@ -52,13 +68,14 @@ def create_file(directory, seed=0, file_size=0):
             return None, 0
         free -= int(total * 0.50)
 
-        r_file_size = random.randint(512, 1024*1024*8)
+        r_file_size = random.randint(512, MAX_FILE_SIZE)
         file_size = min(free, r_file_size)
 
-    if seed == 0:
-        seed = int(time.time())
+        # Make the file size more easily de-duped
+        if DUPLICATE:
+            file_size = _round_to_block_size(file_size)
 
-    data = rs(seed, file_size)
+    data = rs(file_size)
 
     file_hash = md5(data)
 
@@ -133,7 +150,7 @@ def verify_file(full_file_name):
     return True
 
 
-def test(directory):
+def test(directory, seed):
     # Create files and random directories in the supplied directory
     files_created = []
     num_files_created = 0
@@ -141,12 +158,15 @@ def test(directory):
 
     try:
         while True:
-            f_created, size = create_file(directory)
+            f_created, size = create_file(directory, seed=seed)
             if f_created:
                 num_files_created += 1
                 total_bytes += size
                 files_created.append(f_created)
             else:
+                if QUIT_ON_FULL:
+                    print("exiting on full request")
+                    sys.exit(0)
                 print('Full, verify and delete sequence starting...')
                 # We don't have space, lets verify all and then
                 # delete every other file
@@ -178,12 +198,24 @@ if __name__ == '__main__':
     group.add_argument('-rc', '--recreate', nargs=3,
                        action="store", dest="recreate_args", default=None,
                        help="Recreate a file given a <directory> <seed> <size>")
+    parser.add_argument('-qf', '--quit-on-full', action="store_true", dest="quit_on_full",
+                        default=False, help="Exit when you fill up FS to 50 percent")
+    parser.add_argument('-dup', '--duplicate', action="store_true", dest="duplicate",
+                        default=False,
+                        help="Create files which contain data that is similar")
+    parser.add_argument('-s', '--seed', dest="seed", default=0, action="store", type=int,
+                        help="Test run overall seed, allows you to recreate the exact same sequence")
 
     args = parser.parse_args()
 
+    QUIT_ON_FULL = args.quit_on_full
+    DUPLICATE = args.duplicate
+    SEED = args.seed if args.seed != 0 else int(datetime.datetime.now().microsecond)
+    random.seed(SEED)
+
     if args.run_dir:
         if os.path.isdir(args.run_dir):
-            test(args.run_dir)
+            test(args.run_dir, SEED)
         else:
             print("%s is not a directory!" % args.run_dir)
             sys.exit(1)
@@ -194,6 +226,10 @@ if __name__ == '__main__':
         print('File %s validates [OK]!' % args.verify_file)
         sys.exit(0)
     elif args.recreate_args:
+        if SEED != 0:
+            print("-s|--seed should not be specified with -rc!")
+            sys.exit(1)
+        random.seed(args.recreate_args[1])
         f = create_file(
                 args.recreate_args[0],
                 int(args.recreate_args[1]),
