@@ -26,6 +26,8 @@ DUPLICATE = False
 DUPLICATE_DATA = None
 MAX_FILE_SIZE = 1024*1024*8
 SEED = 0
+PERCENT_FREE = 0.50
+BLOCK_SIZE = 512
 
 
 def rs(str_len):
@@ -56,7 +58,7 @@ def md5(t):
 
 
 def _round_to_block_size(size):
-    return size if size % 512 == 0 else size + 512 - size % 512
+    return size if size % BLOCK_SIZE == 0 else size + BLOCK_SIZE - size % BLOCK_SIZE
 
 
 def create_file(directory, seed=0, file_size=0):
@@ -64,11 +66,11 @@ def create_file(directory, seed=0, file_size=0):
 
     if file_size == 0:
         # Don't fill to capacity
-        if free <= int(total * 0.50):
+        if free <= int(total * PERCENT_FREE):
             return None, 0
-        free -= int(total * 0.50)
+        free -= int(total * PERCENT_FREE)
 
-        r_file_size = random.randint(512, MAX_FILE_SIZE)
+        r_file_size = random.randint(BLOCK_SIZE, MAX_FILE_SIZE)
         file_size = min(free, r_file_size)
 
         # Make the file size more easily de-duped
